@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Timer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Work Timer</h1>
+
+        <label for="siteName">Nome del sito:</label>
+        <input type="text" id="siteName" placeholder="Inserisci il nome del sito">
+
+        <button onclick="startTimer()">Inizia sessione</button>
+        <button onclick="endTimer()">Termina sessione</button>
+
+        <p id="currentTime">Orario attuale: 00:00:00</p>
+        <p id="elapsedTime">Tempo trascorso: 00:00:00</p>
+        <p id="totalDuration">Ore totali di lavoro: 00:00:00</p>
+
+        <a id="downloadLink" href="#" download>Scarica il report in formato CSV</a>
+    </div>
+
+    <script>
+        var timerInterval;
+        var startTime;
+
+        function startTimer() {
+            var siteName = document.getElementById('siteName').value;
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 1000); // Aggiorna ogni secondo
+            sendAjaxRequest('timer.php', { action: 'start', siteName: siteName });
+        }
+
+        function endTimer() {
+            clearInterval(timerInterval);
+            sendAjaxRequest('timer.php', { action: 'end' });
+        }
+
+        function updateTimer() {
+            var currentTime = new Date();
+            var elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+
+            document.getElementById('currentTime').innerText = "Orario attuale: " + formatTime(currentTime);
+            document.getElementById('elapsedTime').innerText = "Tempo trascorso: " + formatDuration(elapsedSeconds);
+        }
+
+        function formatTime(time) {
+            var hours = time.getHours().toString().padStart(2, '0');
+            var minutes = time.getMinutes().toString().padStart(2, '0');
+            var seconds = time.getSeconds().toString().padStart(2, '0');
+            return hours + ":" + minutes + ":" + seconds;
+        }
+
+        function formatDuration(seconds) {
+            var hours = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            var minutes = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            var remainingSeconds = (seconds % 60).toString().padStart(2, '0');
+            return hours + ":" + minutes + ":" + remainingSeconds;
+        }
+
+        function sendAjaxRequest(url, data) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', url, true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    handleResponse(xhr.responseText);
+                }
+            };
+            var params = Object.keys(data).map(function (key) {
+                return encodeURIComponent(key) + '=' + encodeURIComponent(data[key]);
+            }).join('&');
+            xhr.send(params);
+        }
+
+        function handleResponse(response) {
+            var result = JSON.parse(response);
+
+            // Update total duration
+            document.getElementById('totalDuration').innerText = "Ore totali di lavoro: " + result.totalDuration;
+
+            // Update download link
+            document.getElementById('downloadLink').href = result.downloadLink;
+        }
+    </script>
+</body>
+</html>
